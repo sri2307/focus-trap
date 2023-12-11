@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accessible Modal Example</title>
+  <style>
+    /* Styles remain unchanged... */
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background-color: white;
+      padding: 20px;
+      border: 1px solid #ccc;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      z-index: 999;
+      max-width: 80%;
+      width: 400px;
+      border-radius: 8px;
+    }
+
+    /* Additional styles for overlay */
+    .overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 998; /* Ensure overlay is below the modal */
+    }
+  </style>
+</head>
+<body>
+
+  <a href="#mainContent" class="skip-link">Skip to Content</a>
+
+  <button id="openModal" aria-haspopup="dialog" aria-controls="myModal">Open Modal</button>
+
+  <div class="overlay" id="overlay"></div>
+
+  <div class="modal" id="myModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDescription">
+    <div class="modal-content">
+      <h2 id="modalTitle">Modal Title</h2>
+      <p id="modalDescription">This is a sample modal dialog. Use Tab and Shift+Tab to navigate through the elements inside the modal.</p>
+      <label for="textInput">Text Input:</label>
+      <input type="text" id="textInput" tabindex="0">
+      <input type="text" id="textInput">
+      <input type="text" id="textInput">
+    </div>
+    <button class="close-button" aria-label="Close Modal">Close Modal</button>
+    <div class="swipe-indicator swipe-left" onclick="focusPrevious()">←</div>
+    <div class="swipe-indicator swipe-right" onclick="focusNext()">→</div>
+  </div>
+
+  <div id="mainContent">
+    <!-- Main content of your page goes here -->
+    <p>This is the main content of your page.</p>
+  </div>
+
+  <script>
+    let currentFocusedIndex = 0;
+    let focusableElements = [];
+
+    document.addEventListener('DOMContentLoaded', function () {
+      const openModalButton = document.getElementById('openModal');
+      const modal = document.getElementById('myModal');
+      const overlay = document.getElementById('overlay');
+      const closeModalButton = modal.querySelector('.close-button');
+      const textInput = modal.querySelector('#textInput');
+
+      function showModal() {
+        modal.style.display = 'block';
+        overlay.style.display = 'block';
+        populateFocusableElements();
+        modal.setAttribute('aria-hidden', 'false');
+        focusableElements[currentFocusedIndex].focus();
+      }
+
+      function closeModal() {
+        modal.style.display = 'none';
+        overlay.style.display = 'none';
+        openModalButton.focus();
+        modal.setAttribute('aria-hidden', 'true');
+        // Reset focus index when modal is closed
+        currentFocusedIndex = 0;
+      }
+
+      function populateFocusableElements() {
+        focusableElements = Array.from(modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'));
+      }
+
+      function trapFocusInsideModal(e) {
+        if (e.key === 'Tab' || e.keyCode === 9) {
+          e.preventDefault();
+
+          const isShiftPressed = e.shiftKey;
+          if (isShiftPressed) {
+            focusPrevious();
+          } else {
+            focusNext();
+          }
+        }
+      }
+
+      function focusNext() {
+        currentFocusedIndex = (currentFocusedIndex + 1) % focusableElements.length;
+        focusableElements[currentFocusedIndex].focus();
+      }
+
+      function focusPrevious() {
+        currentFocusedIndex = (currentFocusedIndex - 1 + focusableElements.length) % focusableElements.length;
+        focusableElements[currentFocusedIndex].focus();
+      }
+
+      function handleSwipeRight() {
+        focusNext();
+      }
+
+      function handleSwipeLeft() {
+        focusPrevious();
+      }
+
+      openModalButton.addEventListener('click', showModal);
+      closeModalButton.addEventListener('click', closeModal);
+      overlay.addEventListener('click', closeModal);
+      modal.addEventListener('keydown', trapFocusInsideModal);
+
+      // Touch events and gestures
+      let touchStartX = 0;
+
+      modal.addEventListener('touchstart', function (e) {
+        touchStartX = e.touches[0].clientX;
+      });
+
+      modal.addEventListener('touchmove', function (e) {
+        e.preventDefault();
+      });
+
+      modal.addEventListener('touchend', function (e) {
+        const touchEndX = e.changedTouches[0].clientX;
+        const deltaX = touchEndX - touchStartX;
+
+        if (Math.abs(deltaX) > 50) {
+          if (deltaX > 0) {
+            handleSwipeRight();
+          } else {
+            handleSwipeLeft();
+          }
+        }
+      });
+
+      // Prevent focus from leaving the modal using touch events
+      modal.addEventListener('focusin', function (e) {
+        if (!modal.contains(e.target)) {
+          textInput.focus();
+        }
+      });
+    });
+  </script>
+</body>
+</html>
